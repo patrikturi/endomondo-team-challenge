@@ -3,8 +3,11 @@ from django.http import Http404
 from django.utils import timezone
 from django.template.response import SimpleTemplateResponse
 
-from challenges.models.challenge import Challenge
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
+from challenges.models.challenge import Challenge
+from .serializers import ChallengesListSerializer
 
 def _challenges_to_short_dict(challenges):
     return {'challenges': [ch.to_short_dict() for ch in challenges]}
@@ -38,12 +41,17 @@ def challenge_view(request, id):
     return SimpleTemplateResponse('challenge.html', view)
 
 
-def all_challenges(request):
-    challenges = Challenge.objects.order_by('-start_date')
-    challenges_view = _challenges_to_short_dict(challenges)
-    challenges_view['title'] = 'All Challenges'
-    challenges_view['page_name'] = 'All'
-    return SimpleTemplateResponse('list_challenges.html', challenges_view)
+class ListChallenges(APIView):
+    template_name = 'list_challenges.html'
+
+    def get(self, request):
+        queryset = Challenge.objects.order_by('-start_date')
+        serializer = ChallengesListSerializer(data={
+            'title': 'All Challenges',
+            'page_name': 'All',
+            'challenges': queryset
+        })
+        return Response(serializer.initial_data)
 
 
 def upcoming_challenges(request):
